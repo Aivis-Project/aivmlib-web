@@ -15,7 +15,9 @@ export const ModelArchitectureSchema = z.enum([
 
 /* 音声合成モデルのモデル形式の型 */
 export const ModelFormatSchema = z.enum([
+    /* Safetensors: AIVM (.aivm) のモデル形式 */
     'Safetensors',
+    /* ONNX: AIVMX (.aivmx) のモデル形式 */
     'ONNX',
 ]);
 
