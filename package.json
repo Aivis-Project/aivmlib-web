@@ -1,0 +1,68 @@
+{
+    "name": "aivmlib-web",
+    "description": "Aivis Voice Model File (.aivm/.aivmx) Utility Library for Web",
+    "author": "Aivis Project <info@aivis-project.com>",
+    "version": "1.0.0",
+    "keywords": [
+        "aivis-project",
+        "aivm",
+        "text-to-speech",
+        "tts",
+        "safetensors",
+        "onnx"
+    ],
+    "license": "MIT",
+    "homepage": "https://github.com/Aivis-Project/aivmlib-web",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/Aivis-Project/aivmlib-web.git"
+    },
+    "type": "module",
+    "main": "./dist/index.mjs",
+    "types": "./dist/index.d.ts",
+    "exports": {
+        ".": {
+            "types": "./dist/index.d.ts",
+            "default": "./dist/index.mjs"
+        }
+    },
+    "sideEffects": false,
+    "files": ["dist", "src", "tsconfig.json", "License.txt", "Readme.md"],
+    "scripts": {
+        "dev": "vite",
+        "build": "vite build",
+        "preview": "vite preview",
+        "lint": "eslint . --fix --ignore-path .gitignore"
+    },
+    "engines": {
+        "node": ">=20.0.0"
+    },
+    "publishConfig": {
+        "access": "public"
+    },
+    "dependencies": {
+        "assert": "^2.1.0",
+        "js-base64": "^3.7.7",
+        "tslib": "^2.7.0",
+        "uuid": "^10.0.0",
+        "zod": "^3.23.8"
+    },
+    "devDependencies": {
+        "@types/node": "20.16.0",
+        "@types/uuid": "^10.0.0",
+        "@typescript-eslint/eslint-plugin": "^7.18.0",
+        "@typescript-eslint/parser": "^7.18.0",
+        "eslint": "^8.57.0",
+        "eslint-plugin-import": "^2.29.1",
+        "eslint-plugin-unused-imports": "^3.2.0",
+        "typescript": "~5.5.4",
+        "vite": "^5.4.2",
+        "vite-plugin-dts": "^4.3.0"
+    },
+    "browserslist": [
+        "> 1%",
+        "last 2 versions",
+        "not dead",
+        "not ie 11"
+    ]
+}
