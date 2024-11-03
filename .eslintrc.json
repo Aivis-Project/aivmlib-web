@@ -3,6 +3,7 @@
     "env": {
         "node": true
     },
+    "ignorePatterns": ["src/onnx-protobuf/**/*"],
     "parserOptions": {
         "parser": "@typescript-eslint/parser"
     },
@@ -12,10 +13,12 @@
         "unused-imports"
     ],
     "extends": [
-        "eslint:recommended"
+        "eslint:recommended",
+        "plugin:@typescript-eslint/recommended"
     ],
     "rules": {
         "@typescript-eslint/indent": ["error", 4, {"SwitchCase": 1}],
+        "@typescript-eslint/no-explicit-any": "warn",
         "@typescript-eslint/no-unused-vars": "off",
         "@typescript-eslint/quotes": ["error", "single"],
         "@typescript-eslint/semi": ["error", "always"],

@@ -38,7 +38,7 @@
         "dev": "vite",
         "build": "vite build",
         "preview": "vite preview",
-        "lint": "eslint . --fix --ignore-path .gitignore"
+        "lint": "eslint \"src/**/*.{js,ts,vue}\" --fix"
     },
     "engines": {
         "node": ">=20.0.0"

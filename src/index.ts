@@ -1,9 +1,9 @@
 
 import { Base64 } from 'js-base64';
-import * as uuid from 'uuid';
 import * as $protobuf from 'protobufjs';
-import { onnx } from '@/onnx-protobuf/onnx';
+import * as uuid from 'uuid';
 
+import { onnx } from '@/onnx-protobuf/onnx';
 import { AivmMetadata, AivmManifest, AivmManifestSchema, DefaultAivmManifest } from '@/schemas/aivm-manifest';
 import { DEFAULT_ICON_DATA_URL } from '@/schemas/aivm-manifest-constants';
 import { StyleBertVITS2HyperParameters, StyleBertVITS2HyperParametersSchema } from '@/schemas/style-bert-vits2';
@@ -35,7 +35,7 @@ export default class Aivmlib {
     ): Promise<AivmMetadata> {
 
         // Style-Bert-VITS2 系の音声合成モデルの場合
-        if (model_architecture.startsWith('Style-Bert-VITS2')) {
+        if (['Style-Bert-VITS2', 'Style-Bert-VITS2 (JP-Extra)'].includes(model_architecture)) {
 
             // ハイパーパラメータファイル (JSON) を読み込んだ後、Zod でバリデーションする
             const hyper_parameters_content = await hyper_parameters_file.text();
@@ -126,7 +126,7 @@ export default class Aivmlib {
         let aivm_hyper_parameters: StyleBertVITS2HyperParameters;
         if (raw_metadata['aivm_hyper_parameters']) {
             try {
-                if (aivm_manifest.model_architecture.startsWith('Style-Bert-VITS2')) {
+                if (['Style-Bert-VITS2', 'Style-Bert-VITS2 (JP-Extra)'].includes(aivm_manifest.model_architecture)) {
                     aivm_hyper_parameters = StyleBertVITS2HyperParametersSchema.parse(JSON.parse(raw_metadata['aivm_hyper_parameters']));
                 } else {
                     throw new Error(`モデルアーキテクチャ ${aivm_manifest.model_architecture} のハイパーパラメータには対応していません。`);
@@ -376,7 +376,7 @@ export default class Aivmlib {
     static applyAivmManifestToHyperParameters(aivm_metadata: AivmMetadata): void {
 
         // Style-Bert-VITS2 系の音声合成モデルの場合
-        if (aivm_metadata.manifest.model_architecture.startsWith('Style-Bert-VITS2')) {
+        if (['Style-Bert-VITS2', 'Style-Bert-VITS2 (JP-Extra)'].includes(aivm_metadata.manifest.model_architecture)) {
 
             // スタイルベクトルが設定されていなければエラー
             if (aivm_metadata.style_vectors === undefined) {
