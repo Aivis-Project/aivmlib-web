@@ -79,7 +79,8 @@ export default class Aivmlib {
                     styles: Object.keys(hyper_parameters.data.style2id).map((style_name, style_index) => {
                         return {
                             // "Neutral" はより分かりやすい "ノーマル" に変換する
-                            name: style_name === 'Neutral' ? 'ノーマル' : style_name,
+                            // ただし、既にスタイル名が "ノーマル" のスタイルがある場合は "Neutral" のままにする
+                            name: (style_name === 'Neutral' && !Object.keys(hyper_parameters.data.style2id).includes('ノーマル')) ? 'ノーマル' : style_name,
                             icon: null,
                             local_id: style_index,
                             voice_samples: [],
