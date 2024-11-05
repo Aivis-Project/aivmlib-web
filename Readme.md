@@ -31,7 +31,7 @@ Node.js 20 以上が必要です。
 npm install aivmlib-web
 ```
 
-> [!IMPORTANT]
+> [!IMPORTANT]  
 > このライブラリは Web ブラウザ向けに開発されているため、Node.js や Deno などサーバーサイド JavaScript 環境では利用できません。
 
 ## License
