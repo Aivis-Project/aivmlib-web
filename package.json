@@ -1,8 +1,8 @@
 {
     "name": "aivmlib-web",
+    "version": "1.0.0-beta.0",
     "description": "Aivis Voice Model File (.aivm/.aivmx) Utility Library for Web",
     "author": "Aivis Project <info@aivis-project.com>",
-    "version": "1.0.0",
     "keywords": [
         "aivis-project",
         "aivm",
@@ -15,7 +15,7 @@
     "homepage": "https://github.com/Aivis-Project/aivmlib-web",
     "repository": {
         "type": "git",
-        "url": "https://github.com/Aivis-Project/aivmlib-web.git"
+        "url": "git+https://github.com/Aivis-Project/aivmlib-web.git"
     },
     "type": "module",
     "main": "./dist/index.mjs",
