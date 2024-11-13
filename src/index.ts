@@ -3,7 +3,7 @@ import { Base64 } from 'js-base64';
 import * as $protobuf from 'protobufjs';
 import * as uuid from 'uuid';
 
-import { onnx } from '@/onnx-protobuf/onnx';
+import { onnx } from '@/onnx-protobuf/onnx.cjs';
 import { AivmMetadata, AivmManifest, AivmManifestSchema, DefaultAivmManifest } from '@/schemas/aivm-manifest';
 import { DEFAULT_ICON_DATA_URL } from '@/schemas/aivm-manifest-constants';
 import { StyleBertVITS2HyperParameters, StyleBertVITS2HyperParametersSchema } from '@/schemas/style-bert-vits2';
