@@ -1,6 +1,6 @@
 {
     "name": "aivmlib-web",
-    "version": "1.0.0-beta.2",
+    "version": "1.0.0-beta.3",
     "description": "Aivis Voice Model File (.aivm/.aivmx) Utility Library for Web",
     "author": "Aivis Project <info@aivis-project.com>",
     "keywords": [
