@@ -46,8 +46,8 @@ export const AivmManifestSchema = z.object({
     name: z.string().min(1).max(80),
     /* 音声合成モデルの簡潔な説明 (最大 140 文字 / 省略時は空文字列を設定) */
     description: z.string().max(140).default(''),
-    /* 音声合成モデルの作成者名のリスト (省略時は空リストを設定)
-     * 作成者名には npm package.json の "author", "contributors" に指定できるものと同じ書式を利用できる
+    /* 音声合成モデルの制作者名のリスト (省略時は空リストを設定)
+     * 制作者名には npm package.json の "author", "contributors" に指定できるものと同じ書式を利用できる
      * 例: ["John Doe", "Jane Doe <jane.doe@example.com>", "John Doe <john.doe@example.com> (https://example.com)"] */
     creators: z.array(z.string().min(1).max(255)).default([]),
     /* 音声合成モデルのライセンス情報 (Markdown 形式またはプレーンテキスト / 省略時は null を設定)
