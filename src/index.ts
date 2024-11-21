@@ -227,6 +227,29 @@ export default class Aivmlib {
 
 
     /**
+     * AIVM メタデータを生の辞書形式にシリアライズする
+     * @param aivm_metadata AIVM メタデータ
+     * @returns シリアライズされた AIVM メタデータ (文字列から文字列へのマップ)
+     */
+    static serializeAivmMetadata(aivm_metadata: AivmMetadata): { [key: string]: string } {
+
+        // AIVM メタデータをシリアライズ
+        // Safetensors / ONNX のメタデータ領域はネストなしの string から string への map でなければならないため、
+        // すべてのメタデータを文字列にシリアライズして格納する
+        const raw_metadata: { [key: string]: string } = {};
+        raw_metadata['aivm_manifest'] = JSON.stringify(aivm_metadata.manifest);
+        raw_metadata['aivm_hyper_parameters'] = JSON.stringify(aivm_metadata.hyper_parameters);
+
+        // スタイルベクトルが存在する場合は Base64 エンコードして追加
+        if (aivm_metadata.style_vectors) {
+            raw_metadata['aivm_style_vectors'] = Base64.fromUint8Array(aivm_metadata.style_vectors);
+        }
+
+        return raw_metadata;
+    }
+
+
+    /**
      * AIVM メタデータを AIVM ファイルに書き込む
      * @param aivm_file AIVM ファイル
      * @param aivm_metadata AIVM メタデータ
@@ -242,16 +265,9 @@ export default class Aivmlib {
         // 結果は AivmMetadata オブジェクトに直接 in-place で反映される
         Aivmlib.applyAivmManifestToHyperParameters(aivm_metadata);
 
-        // AIVM メタデータをシリアライズ
-        // Safetensors のメタデータ領域はネストなしの string から string への map でなければならないため、
-        // すべてのメタデータを文字列にシリアライズして格納する
-        const metadata: { [key: string]: string } = {};
-        metadata['aivm_manifest'] = JSON.stringify(aivm_metadata.manifest);
-        metadata['aivm_hyper_parameters'] = JSON.stringify(aivm_metadata.hyper_parameters);
-        if (aivm_metadata.style_vectors) {
-            // スタイルベクトルが存在する場合は Base64 エンコードして追加
-            metadata['aivm_style_vectors'] = Base64.fromUint8Array(aivm_metadata.style_vectors);
-        }
+        // AIVM メタデータをシリアライズした上で、書き込む前にバリデーションを行う
+        const raw_metadata = Aivmlib.serializeAivmMetadata(aivm_metadata);
+        Aivmlib.validateAivmMetadata(raw_metadata);
 
         // AIVM ファイルの内容を一度に読み取る
         const aivm_file_buffer = await aivm_file.arrayBuffer();
@@ -274,8 +290,8 @@ export default class Aivmlib {
 
         // 既存の __metadata__ に新しいメタデータを追加
         // 既に存在するキーは上書きされる
-        for (const key in metadata) {
-            existing_metadata[key] = metadata[key];
+        for (const key in raw_metadata) {
+            existing_metadata[key] = raw_metadata[key];
         }
 
         // 更新された __metadata__ を設定
@@ -332,28 +348,21 @@ export default class Aivmlib {
             throw new Error('AIVMX ファイルの形式が正しくありません。AIVMX ファイル以外のファイルが指定されている可能性があります。');
         }
 
-        // AIVM メタデータをシリアライズ
-        // ONNX のメタデータ領域はネストなしの string から string への key-value でなければならないため、
-        // すべてのメタデータを文字列にシリアライズして格納する
-        const metadata: { [key: string]: string } = {};
-        metadata['aivm_manifest'] = JSON.stringify(aivm_metadata.manifest);
-        metadata['aivm_hyper_parameters'] = JSON.stringify(aivm_metadata.hyper_parameters);
-        if (aivm_metadata.style_vectors) {
-            // スタイルベクトルが存在する場合は Base64 エンコードして追加
-            metadata['aivm_style_vectors'] = Base64.fromUint8Array(aivm_metadata.style_vectors);
-        }
+        // AIVM メタデータをシリアライズした上で、書き込む前にバリデーションを行う
+        const raw_metadata = Aivmlib.serializeAivmMetadata(aivm_metadata);
+        Aivmlib.validateAivmMetadata(raw_metadata);
 
         // メタデータを ONNX モデルに追加
         if (!model.metadataProps) {
             model.metadataProps = [];
         }
-        for (const key in metadata) {
+        for (const key in raw_metadata) {
             // 同一のキーが存在する場合は上書き
             const existing_prop = model.metadataProps.find(prop => prop.key === key);
             if (existing_prop) {
-                existing_prop.value = metadata[key];
+                existing_prop.value = raw_metadata[key];
             } else {
-                model.metadataProps.push({ key: key, value: metadata[key] });
+                model.metadataProps.push({ key: key, value: raw_metadata[key] });
             }
         }
 
