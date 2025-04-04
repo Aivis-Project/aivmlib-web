@@ -30,6 +30,5 @@
         }],
         "unused-imports/no-unused-imports": "warn",
         "no-constant-condition": ["error", {"checkLoops": false}],
-        "no-unused-vars": "off"
     }
 }

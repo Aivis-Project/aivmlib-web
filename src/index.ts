@@ -55,6 +55,30 @@ export default class Aivmlib {
                 throw new Error('ハイパーパラメータにスタイル情報が含まれていません。');
             }
 
+            // 話者 ID の重複チェック
+            const speaker_ids = new Set<number>();
+            for (const [speaker_name, speaker_id] of Object.entries(hyper_parameters.data.spk2id)) {
+                if (speaker_ids.has(speaker_id)) {
+                    throw new Error(`話者 ID（${speaker_id}）が重複しています。複数の話者（${Array.from(Object.entries(hyper_parameters.data.spk2id))
+                        .filter(([_, id]) => id === speaker_id)
+                        .map(([name, _]) => `「${name}」`)
+                        .join('、')}）に同じ ID が割り当てられています。`);
+                }
+                speaker_ids.add(speaker_id);
+            }
+
+            // スタイル ID の重複チェック
+            const style_ids = new Set<number>();
+            for (const [style_name, style_id] of Object.entries(hyper_parameters.data.style2id)) {
+                if (style_ids.has(style_id)) {
+                    throw new Error(`スタイル ID（${style_id}）が重複しています。複数のスタイル（${Array.from(Object.entries(hyper_parameters.data.style2id))
+                        .filter(([_, id]) => id === style_id)
+                        .map(([name, _]) => `「${name}」`)
+                        .join('、')}）に同じ ID が割り当てられています。`);
+                }
+                style_ids.add(style_id);
+            }
+
             // スタイル ID のバリデーション
             // AIVM マニフェストの制約（0 <= id <= 31）を満たしているかチェック
             for (const [style_name, style_id] of Object.entries(hyper_parameters.data.style2id)) {
@@ -189,9 +213,8 @@ export default class Aivmlib {
             const new_spk2id = hyper_parameters.data.spk2id;
             const new_style2id = hyper_parameters.data.style2id;
 
-            // 指定された既存の AIVM マニフェストをコピーした後、
-            // ハイパーパラメータの記述に応じてモデルアーキテクチャを更新
-            // NOTE: 音声合成モデル名は意図的に既存の AIVM マニフェストに記載の内容を維持している
+            // 指定された既存の AIVM マニフェストをコピーした後、ハイパーパラメータの記述に応じてモデルアーキテクチャを更新
+            // NOTE: 音声合成モデル名は更新せず、既存の AIVM マニフェストの内容を維持している
             const manifest = structuredClone(existing_metadata.manifest);
             manifest.model_architecture = hyper_parameters.data.use_jp_extra ? 'Style-Bert-VITS2 (JP-Extra)' : 'Style-Bert-VITS2';
 
@@ -200,76 +223,55 @@ export default class Aivmlib {
             for (const [name, id] of Object.entries(new_spk2id)) {
                 new_spk_id_to_name_map.set(id, name);
             }
-            const processed_new_speaker_ids = new Set<number>(); // 処理済みの新しい local_id を追跡
+            // Map: local_id -> style_name
+            const new_style_id_to_name_map = new Map<number, string>();
+            for (const [name, id] of Object.entries(new_style2id)) {
+                new_style_id_to_name_map.set(id, name);
+            }
+            const processed_new_speaker_local_ids = new Set<number>();
             const updated_speakers: AivmManifest['speakers'] = [];
 
-            // 既存の話者リストを基準にイテレート
+            // 既存の話者情報リストを基準にイテレート
             for (const existing_speaker of existing_metadata.manifest.speakers) {
                 const speaker_local_id = existing_speaker.local_id;
 
-                // 既存話者の local_id が新しい spk2id に存在するか確認
+                // 既存話者の local_id が新しいハイパーパラメータの spk2id に存在するか確認
                 if (new_spk_id_to_name_map.has(speaker_local_id)) {
-                    // --- 話者が local_id ベースで新しいハイパーパラメータにも存在する場合 ---
-                    const new_speaker_name = new_spk_id_to_name_map.get(speaker_local_id)!;
-                    processed_new_speaker_ids.add(speaker_local_id);
-
+                    processed_new_speaker_local_ids.add(speaker_local_id);
+                    const processed_new_style_local_ids = new Set<number>();
                     const updated_styles: AivmManifest['speakers'][number]['styles'] = [];
-                    const processed_new_style_raw_names = new Set<string>(); // スタイル順序維持用
 
-                    // 既存のスタイルリストを基準にイテレート
+                    // 既存のスタイル情報リストを基準にイテレート
                     for (const existing_style of existing_speaker.styles) {
-                        const existing_style_name = existing_style.name;
+                        const style_local_id = existing_style.local_id;
 
-                        // ノーマル/Neutral 互換性を考慮して新しいハイパーパラメータでの raw name を探す
-                        let style_name_raw_in_new: string | null = null;
-                        if (existing_style_name in new_style2id) {
-                            style_name_raw_in_new = existing_style_name;
-                        } else if (existing_style_name === 'ノーマル' && 'Neutral' in new_style2id) {
-                            // 既存が「ノーマル」で新ハイパーパラメータに「Neutral」があるか？
-                            // （かつ新ハイパーパラメータに「ノーマル」がない前提）
-                            if (!('ノーマル' in new_style2id)) {
-                                style_name_raw_in_new = 'Neutral';
-                            }
-                        } else if (existing_style_name === 'Neutral' && 'ノーマル' in new_style2id) {
-                            // 既存が「Neutral」で新ハイパーパラメータに「ノーマル」があるか？
-                            // （かつ新ハイパーパラメータに「Neutral」がない前提）
-                            if (!('Neutral' in new_style2id)) { // これは常に true のはずだが念のため
-                                style_name_raw_in_new = 'ノーマル';
-                            }
-                        }
+                        // 既存スタイルの local_id が新しいハイパーパラメータの style2id に存在するか確認
+                        if (new_style_id_to_name_map.has(style_local_id)) {
+                            processed_new_style_local_ids.add(style_local_id);
 
-                        if (style_name_raw_in_new !== null && style_name_raw_in_new in new_style2id) { // 再度存在確認
-                            // スタイルが新しいハイパーパラメータにも存在する場合
-                            processed_new_style_raw_names.add(style_name_raw_in_new);
-                            const new_style_local_id = new_style2id[style_name_raw_in_new];
-                            // 既存のスタイル名を維持し、ID のみ更新
-                            updated_styles.push({
-                                ...existing_style, // icon, voice_samples を維持
-                                name: existing_style_name, // 既存の名前を使う
-                                local_id: new_style_local_id,
-                            });
+                            // 既存のスタイル情報を維持
+                            updated_styles.push(existing_style);
                         } else {
                             // スタイルが削除された場合
-                            warnings.push(`話者「${existing_speaker.name}」のスタイル「${existing_style_name}」は、新しいハイパーパラメータに存在しないため削除されます。`);
+                            warnings.push(`話者「${existing_speaker.name}」のスタイル「${existing_style.name}」(ID: ${style_local_id}) は、新しいハイパーパラメータに存在しないため削除されます。`);
                         }
                     }
 
                     // 新しいハイパーパラメータで追加されたスタイルを追加
-                    for (const [style_name, new_style_local_id] of Object.entries(new_style2id)) {
-                        if (!processed_new_style_raw_names.has(style_name)) {
-                            // "Neutral" -> "ノーマル" へ変換
-                            const new_style_name = (style_name === 'Neutral' && !Object.keys(new_style2id).includes('ノーマル'))
+                    for (const [style_name, style_local_id] of Object.entries(new_style2id)) {
+                        if (!processed_new_style_local_ids.has(style_local_id)) {
+                            // "Neutral" はより分かりやすい "ノーマル" に変換する
+                            // ただし、既にスタイル名が "ノーマル" のスタイルがある場合は "Neutral" のままにする
+                            const new_style_name = (style_name === 'Neutral' && !Object.keys(hyper_parameters.data.style2id).includes('ノーマル'))
                                 ? 'ノーマル'
                                 : style_name;
-
-                            // 新しいハイパーパラメータで追加されたスタイル
                             updated_styles.push({
                                 name: new_style_name,
                                 icon: null,
-                                local_id: new_style_local_id,
+                                local_id: style_local_id,
                                 voice_samples: [],
                             });
-                            warnings.push(`話者「${existing_speaker.name}」にスタイル「${new_style_name}」が新しく追加されました。`);
+                            warnings.push(`話者「${existing_speaker.name}」にスタイル「${style_name}」(ID: ${style_local_id}) が新しく追加されました。`);
                         }
                     }
 
@@ -284,11 +286,9 @@ export default class Aivmlib {
 
                     // 更新された話者情報を追加
                     updated_speakers.push({
-                        ...existing_speaker, // uuid, icon などを維持
-                        name: existing_speaker.name, // 既存の話者名を維持
-                        local_id: speaker_local_id, // local_id は維持
-                        styles: updated_styles, // 更新されたスタイルリスト
-                        supported_languages: supported_languages, // 必要に応じて更新された対応言語
+                        ...existing_speaker, // 既存の話者情報を維持
+                        supported_languages: supported_languages, // 更新された対応言語情報
+                        styles: updated_styles, // 更新されたスタイル情報リスト
                     });
 
                 } else {
@@ -299,15 +299,14 @@ export default class Aivmlib {
 
             // 新しいハイパーパラメータで追加された話者を追加
             for (const [new_speaker_name, new_local_id] of Object.entries(new_spk2id)) {
-                if (!processed_new_speaker_ids.has(new_local_id)) {
-                    // 新しいハイパーパラメータで追加された話者
-                    const new_speaker_styles: AivmManifest['speakers'][number]['styles'] = [];
+                if (!processed_new_speaker_local_ids.has(new_local_id)) {
 
-                    // 新しいハイパーパラメータの全スタイルを追加
+                    // 新しいハイパーパラメータに含まれる全スタイルを追加
+                    const new_speaker_styles: AivmManifest['speakers'][number]['styles'] = [];
                     for (const [style_name, style_local_id] of Object.entries(new_style2id)) {
                         // "Neutral" はより分かりやすい "ノーマル" に変換する
                         // ただし、既にスタイル名が "ノーマル" のスタイルがある場合は "Neutral" のままにする
-                        const new_style_name = (style_name === 'Neutral' && !Object.keys(new_style2id).includes('ノーマル'))
+                        const new_style_name = (style_name === 'Neutral' && !Object.keys(hyper_parameters.data.style2id).includes('ノーマル'))
                             ? 'ノーマル'
                             : style_name;
                         new_speaker_styles.push({
@@ -318,6 +317,7 @@ export default class Aivmlib {
                         });
                     }
 
+                    // 新しい話者を追加
                     updated_speakers.push({
                         // ハイパーパラメータに記載の話者名を使用
                         name: new_speaker_name,
@@ -336,16 +336,25 @@ export default class Aivmlib {
                 }
             }
 
-            // マニフェストに更新された話者リストを設定
+            // マニフェストに更新された話者情報リストを設定
             manifest.speakers = updated_speakers;
+
+            // 処理の結果、話者情報リストが空になった場合はエラーを投げる
+            if (updated_speakers.length === 0) {
+                throw new Error('更新処理の結果、話者情報が空になりました。AIVM マニフェストには少なくとも 1 つの話者が必要です。');
+            }
+
+            // 処理の結果、いずれかの話者のスタイル情報リストが空になった場合はエラーを投げる
+            for (const speaker of updated_speakers) {
+                if (speaker.styles.length === 0) {
+                    throw new Error(`更新処理の結果、話者「${speaker.name}」(ID: ${speaker.local_id}) のスタイル情報が空になりました。各話者には少なくとも 1 つのスタイルが必要です。`);
+                }
+            }
 
             return {
                 updated_metadata: {
-                    // AIVM マニフェストを更新（モデル名や UUID などのユーザー設定はなるべく維持）
                     manifest: manifest,
-                    // 新しいハイパーパラメータを反映
                     hyper_parameters: hyper_parameters,
-                    // 新しいスタイルベクトルを反映
                     style_vectors: style_vectors,
                 },
                 warnings: warnings,
