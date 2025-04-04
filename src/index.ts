@@ -22,22 +22,22 @@ export * from '@/schemas/aivm-manifest-constants';
 export default class Aivmlib {
 
     /**
-     * ハイパーパラメータファイルとスタイルベクトルファイルから AIVM メタデータを生成する
+     * ハイパーパラメータとスタイルベクトルを読み込み、バリデーションする内部メソッド
      * @param model_architecture 音声合成モデルのアーキテクチャ
      * @param hyper_parameters_file ハイパーパラメータファイル
      * @param style_vectors_file スタイルベクトルファイル
-     * @returns 生成された AIVM メタデータ
+     * @returns ハイパーパラメータとスタイルベクトルのデータ
      */
-    static async generateAivmMetadata(
+    private static async loadAndValidateHyperParametersAndStyleVectors(
         model_architecture: AivmManifest['model_architecture'],
         hyper_parameters_file: File,
         style_vectors_file: File | null,
-    ): Promise<AivmMetadata> {
+    ): Promise<{ hyper_parameters: StyleBertVITS2HyperParameters, style_vectors: Uint8Array }> {
 
         // Style-Bert-VITS2 系の音声合成モデルの場合
         if (['Style-Bert-VITS2', 'Style-Bert-VITS2 (JP-Extra)'].includes(model_architecture)) {
 
-            // ハイパーパラメータファイル (JSON) を読み込んだ後、Zod でバリデーションする
+            // ハイパーパラメータファイルの読み込みとバリデーション
             const hyper_parameters_content = await hyper_parameters_file.text();
             let hyper_parameters: StyleBertVITS2HyperParameters;
             try {
@@ -55,27 +55,58 @@ export default class Aivmlib {
                 throw new Error('ハイパーパラメータにスタイル情報が含まれていません。');
             }
 
-            // スタイル ID が AIVM マニフェストの制約（0 <= id <= 31）を満たしているかチェック
+            // スタイル ID のバリデーション
+            // AIVM マニフェストの制約（0 <= id <= 31）を満たしているかチェック
             for (const [style_name, style_id] of Object.entries(hyper_parameters.data.style2id)) {
                 if (style_id < 0 || style_id > 31) {
                     throw new Error(`スタイル「${style_name}」の ID（${style_id}）が有効範囲外です。スタイル ID は 0 から 31 の範囲である必要があります。`);
                 }
             }
 
-            // 話者 ID が非負整数であることを確認
+            // 話者 ID のバリデーション
             for (const [speaker_name, speaker_id] of Object.entries(hyper_parameters.data.spk2id)) {
                 if (speaker_id < 0 || !Number.isInteger(speaker_id)) {
                     throw new Error(`話者「${speaker_name}」の ID（${speaker_id}）が有効範囲外です。話者 ID は 0 以上の整数である必要があります。`);
                 }
             }
 
-            // スタイルベクトルファイルを読み込む
+            // スタイルベクトルファイルの読み込み
             // Style-Bert-VITS2 モデルアーキテクチャの AIVM ファイルではスタイルベクトルが必須
             if (style_vectors_file === null) {
                 throw new Error('スタイルベクトルファイルが指定されていません。');
             }
             const style_vectors_array_buffer = await style_vectors_file.arrayBuffer();
             const style_vectors = new Uint8Array(style_vectors_array_buffer);
+
+            return { hyper_parameters, style_vectors };
+        }
+
+        throw new Error(`音声合成モデルアーキテクチャ ${model_architecture} には対応していません。`);
+    }
+
+
+    /**
+     * ハイパーパラメータファイルとスタイルベクトルファイルから AIVM メタデータを生成する
+     * @param model_architecture 音声合成モデルのアーキテクチャ
+     * @param hyper_parameters_file ハイパーパラメータファイル
+     * @param style_vectors_file スタイルベクトルファイル
+     * @returns 生成された AIVM メタデータ
+     */
+    static async generateAivmMetadata(
+        model_architecture: AivmManifest['model_architecture'],
+        hyper_parameters_file: File,
+        style_vectors_file: File | null,
+    ): Promise<AivmMetadata> {
+
+        // ハイパーパラメータとスタイルベクトルの読み込み・バリデーション
+        const { hyper_parameters, style_vectors } = await Aivmlib.loadAndValidateHyperParametersAndStyleVectors(
+            model_architecture,
+            hyper_parameters_file,
+            style_vectors_file,
+        );
+
+        // Style-Bert-VITS2 系の音声合成モデルの場合
+        if (['Style-Bert-VITS2', 'Style-Bert-VITS2 (JP-Extra)'].includes(model_architecture)) {
 
             // デフォルトの AIVM マニフェストをコピーした後、ハイパーパラメータに記載の値で一部を上書きする
             const manifest = structuredClone(DefaultAivmManifest);
@@ -137,59 +168,26 @@ export default class Aivmlib {
     static async updateAivmMetadata(
         existing_metadata: AivmMetadata,
         hyper_parameters_file: File,
-        style_vectors_file: File,
+        style_vectors_file: File | null,
     ): Promise<{ updated_metadata: AivmMetadata, warnings: string[] }> {
         const warnings: string[] = [];
 
         // 既存の AIVM マニフェストからモデルアーキテクチャを取得
         const model_architecture = existing_metadata.manifest.model_architecture;
 
+        // ハイパーパラメータとスタイルベクトルの読み込み・バリデーション
+        const { hyper_parameters, style_vectors } = await Aivmlib.loadAndValidateHyperParametersAndStyleVectors(
+            model_architecture,
+            hyper_parameters_file,
+            style_vectors_file,
+        );
+
         // Style-Bert-VITS2 系の音声合成モデルの場合
         if (['Style-Bert-VITS2', 'Style-Bert-VITS2 (JP-Extra)'].includes(model_architecture)) {
-
-            // ハイパーパラメータファイル (JSON) を読み込んだ後、Zod でバリデーションする
-            const hyper_parameters_content = await hyper_parameters_file.text();
-            let hyper_parameters: StyleBertVITS2HyperParameters;
-            try {
-                hyper_parameters = StyleBertVITS2HyperParametersSchema.parse(JSON.parse(hyper_parameters_content));
-            } catch (error) {
-                console.error(error);
-                throw new Error(`${model_architecture} のハイパーパラメータファイルの形式が正しくありません。`);
-            }
-
-            // スタイルベクトルファイルを読み込む
-            // Style-Bert-VITS2 モデルアーキテクチャの AIVM ファイルではスタイルベクトルが必須
-            if (style_vectors_file === null) {
-                throw new Error('スタイルベクトルファイルが指定されていません。');
-            }
-            const style_vectors_array_buffer = await style_vectors_file.arrayBuffer();
-            const style_vectors = new Uint8Array(style_vectors_array_buffer);
 
             // 新しい話者・スタイル情報を取得
             const new_spk2id = hyper_parameters.data.spk2id;
             const new_style2id = hyper_parameters.data.style2id;
-
-            // 話者情報とスタイル情報の存在チェック
-            if (Object.keys(hyper_parameters.data.spk2id).length === 0) {
-                throw new Error('ハイパーパラメータに話者情報が含まれていません。');
-            }
-            if (Object.keys(hyper_parameters.data.style2id).length === 0) {
-                throw new Error('ハイパーパラメータにスタイル情報が含まれていません。');
-            }
-
-            // スタイル ID が AIVM マニフェストの制約（0 <= id <= 31）を満たしているかチェック
-            for (const [style_name, style_id] of Object.entries(hyper_parameters.data.style2id)) {
-                if (style_id < 0 || style_id > 31) {
-                    throw new Error(`スタイル「${style_name}」の ID（${style_id}）が有効範囲外です。スタイル ID は 0 から 31 の範囲である必要があります。`);
-                }
-            }
-
-            // 話者 ID が非負整数であることを確認
-            for (const [speaker_name, speaker_id] of Object.entries(hyper_parameters.data.spk2id)) {
-                if (speaker_id < 0 || !Number.isInteger(speaker_id)) {
-                    throw new Error(`話者「${speaker_name}」の ID（${speaker_id}）が有効範囲外です。話者 ID は 0 以上の整数である必要があります。`);
-                }
-            }
 
             // 指定された既存の AIVM マニフェストをコピーした後、
             // ハイパーパラメータの記述に応じてモデルアーキテクチャを更新
@@ -534,7 +532,7 @@ export default class Aivmlib {
         const existing_header_size = new DataView(aivm_file_buffer).getBigUint64(0, true);
         const existing_header_bytes = aivm_file_bytes.slice(8, 8 + Number(existing_header_size));
         const existing_header_text = new TextDecoder('utf-8').decode(existing_header_bytes);
-        let existing_header: { [key: string]: any };
+        let existing_header: { [key: string]: unknown };
         try {
             existing_header = JSON.parse(existing_header_text);
         } catch (error) {
