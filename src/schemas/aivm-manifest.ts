@@ -1,4 +1,3 @@
-
 import { z } from 'zod';
 
 import { DEFAULT_ICON_DATA_URL } from '@/schemas/aivm-manifest-constants';
