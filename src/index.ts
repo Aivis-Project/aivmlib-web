@@ -674,6 +674,9 @@ export default class Aivmlib {
                 // 存在すれば新しい話者名をキーとして追加
                 if (old_key) {
                     new_spk2id[speaker.name] = local_id;
+                } else {
+                    // 必ず AivmManifest.speakers[].local_id の値が spk2id に存在しなければならない
+                    throw new Error(`話者 ID "${local_id}" の話者 "${speaker.name}" がハイパーパラメータに存在しません。`);
                 }
             }
             aivm_metadata.hyper_parameters.data.spk2id = new_spk2id;
@@ -691,6 +694,9 @@ export default class Aivmlib {
                     // 存在すれば新しいスタイル名をキーとして追加
                     if (old_key) {
                         new_style2id[style.name] = local_id;
+                    } else {
+                        // 必ず AivmManifest.speakers[].styles[].local_id の値が style2id に存在しなければならない
+                        throw new Error(`スタイル ID "${local_id}" のスタイル "${style.name}" がハイパーパラメータに存在しません。`);
                     }
                 }
             }
