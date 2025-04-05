@@ -44,7 +44,7 @@ export default class Aivmlib {
                 hyper_parameters = StyleBertVITS2HyperParametersSchema.parse(JSON.parse(hyper_parameters_content));
             } catch (error) {
                 console.error(error);
-                throw new Error(`${model_architecture} のハイパーパラメータファイルの形式が正しくありません。`);
+                throw new Error(`${model_architecture} のハイパーパラメータファイルの形式が正しくありません。`, { cause: error });
             }
 
             // 話者情報とスタイル情報の存在チェック
@@ -383,7 +383,7 @@ export default class Aivmlib {
             aivm_manifest = AivmManifestSchema.parse(JSON.parse(raw_metadata['aivm_manifest']));
         } catch (error) {
             console.error(error);
-            throw new Error('AIVM マニフェストの形式が正しくありません。');
+            throw new Error('AIVM マニフェストの形式が正しくありません。', { cause: error });
         }
 
         // ハイパーパラメータのバリデーション
@@ -397,7 +397,7 @@ export default class Aivmlib {
                 }
             } catch (error) {
                 console.error(error);
-                throw new Error('ハイパーパラメータの形式が正しくありません。');
+                throw new Error('ハイパーパラメータの形式が正しくありません。', { cause: error });
             }
         } else {
             throw new Error('ハイパーパラメータが見つかりません。');
@@ -410,7 +410,7 @@ export default class Aivmlib {
                 const base64_string: string = raw_metadata['aivm_style_vectors'];
                 aivm_style_vectors = Base64.toUint8Array(base64_string);
             } catch (error) {
-                throw new Error('スタイルベクトルのデコードに失敗しました。');
+                throw new Error('スタイルベクトルのデコードに失敗しました。', { cause: error });
             }
         }
 
@@ -442,7 +442,7 @@ export default class Aivmlib {
             header_bytes = new Uint8Array(array_buffer, 8, Number(header_size));
         } catch (error) {
             console.error(error);
-            throw new Error('AIVM ファイルの形式が正しくありません。AIVM ファイル以外のファイルが指定されている可能性があります。');
+            throw new Error('AIVM ファイルの形式が正しくありません。AIVM ファイル以外のファイルが指定されている可能性があります。', { cause: error });
         }
         const header_text = new TextDecoder('utf-8').decode(header_bytes);
         const header_json = JSON.parse(header_text);
@@ -472,7 +472,7 @@ export default class Aivmlib {
             model = onnx.ModelProto.decode(reader);
         } catch (error) {
             console.error(error);
-            throw new Error('AIVMX ファイルの形式が正しくありません。AIVMX ファイル以外のファイルが指定されている可能性があります。');
+            throw new Error('AIVMX ファイルの形式が正しくありません。AIVMX ファイル以外のファイルが指定されている可能性があります。', { cause: error });
         }
 
         // AIVM メタデータを取得
@@ -546,7 +546,7 @@ export default class Aivmlib {
             existing_header = JSON.parse(existing_header_text);
         } catch (error) {
             console.error(error);
-            throw new Error('AIVM ファイルの形式が正しくありません。AIVM ファイル以外のファイルが指定されている可能性があります。');
+            throw new Error('AIVM ファイルの形式が正しくありません。AIVM ファイル以外のファイルが指定されている可能性があります。', { cause: error });
         }
 
         // 既存の __metadata__ を取得または新規作成
@@ -609,7 +609,7 @@ export default class Aivmlib {
             model = onnx.ModelProto.decode(reader);
         } catch (error) {
             console.error(error);
-            throw new Error('AIVMX ファイルの形式が正しくありません。AIVMX ファイル以外のファイルが指定されている可能性があります。');
+            throw new Error('AIVMX ファイルの形式が正しくありません。AIVMX ファイル以外のファイルが指定されている可能性があります。', { cause: error });
         }
 
         // AIVM メタデータをシリアライズした上で、書き込む前にバリデーションを行う
