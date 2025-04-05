@@ -22,7 +22,7 @@ export * from '@/schemas/aivm-manifest-constants';
 export default class Aivmlib {
 
     /**
-     * ハイパーパラメータとスタイルベクトルを読み込み、バリデーションする内部メソッド
+     * ハイパーパラメータとスタイルベクトルファイルを読み込み、バリデーションする内部メソッド
      * @param model_architecture 音声合成モデルのアーキテクチャ
      * @param hyper_parameters_file ハイパーパラメータファイル
      * @param style_vectors_file スタイルベクトルファイル
@@ -135,7 +135,7 @@ export default class Aivmlib {
             // デフォルトの AIVM マニフェストをコピーした後、ハイパーパラメータに記載の値で一部を上書きする
             const manifest = structuredClone(DefaultAivmManifest);
             manifest.name = hyper_parameters.model_name;
-            // モデルアーキテクチャは Style-Bert-VITS2 系であれば異なる値が指定されても動作するように、ハイパーパラメータの値を使用する
+            // モデルアーキテクチャは Style-Bert-VITS2 系であれば異なる値が指定されても動作するよう、ハイパーパラメータの値を元に設定する
             manifest.model_architecture = hyper_parameters.data.use_jp_extra ? 'Style-Bert-VITS2 (JP-Extra)' : 'Style-Bert-VITS2';
             // モデル UUID はランダムに生成
             manifest.uuid = uuid.v4();
