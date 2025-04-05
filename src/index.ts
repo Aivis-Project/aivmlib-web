@@ -666,30 +666,36 @@ export default class Aivmlib {
             // 話者名を反映
             const new_spk2id: { [key: string]: number } = {};
             for (const speaker of aivm_metadata.manifest.speakers) {
+                // 話者のローカル ID が元のハイパーパラメータに存在するかチェック
                 const local_id = speaker.local_id;
                 const old_key = Object.keys(aivm_metadata.hyper_parameters.data.spk2id).find(
                     key => aivm_metadata.hyper_parameters.data.spk2id[key] === local_id
                 );
+                // 存在すれば新しい話者名をキーとして追加
                 if (old_key) {
                     new_spk2id[speaker.name] = local_id;
                 }
             }
             aivm_metadata.hyper_parameters.data.spk2id = new_spk2id;
+            aivm_metadata.hyper_parameters.data.n_speakers = Object.keys(new_spk2id).length;
 
             // スタイル名を反映
             const new_style2id: { [key: string]: number } = {};
             for (const speaker of aivm_metadata.manifest.speakers) {
                 for (const style of speaker.styles) {
+                    // スタイルのローカル ID が元のハイパーパラメータに存在するかチェック
                     const local_id = style.local_id;
                     const old_key = Object.keys(aivm_metadata.hyper_parameters.data.style2id).find(
                         key => aivm_metadata.hyper_parameters.data.style2id[key] === local_id
                     );
+                    // 存在すれば新しいスタイル名をキーとして追加
                     if (old_key) {
                         new_style2id[style.name] = local_id;
                     }
                 }
             }
             aivm_metadata.hyper_parameters.data.style2id = new_style2id;
+            aivm_metadata.hyper_parameters.data.num_styles = Object.keys(new_style2id).length;
         }
     }
 }
