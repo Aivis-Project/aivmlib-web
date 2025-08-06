@@ -75,6 +75,7 @@ export const StyleBertVITS2HyperParametersSchema = z.object({
         resblock_kernel_sizes: z.array(z.number().int()).optional(),
         resblock_dilation_sizes: z.array(z.array(z.number().int())).optional(),
         upsample_rates: z.array(z.number().int()).optional(),
+        upsample_initial_channel: z.number().int().optional(),
         upsample_kernel_sizes: z.array(z.number().int()).optional(),
         n_layers_q: z.number().int().optional(),
         use_spectral_norm: z.boolean().optional(),
