@@ -1,4 +1,4 @@
-name: Deploy to NPM
+name: Deploy to npm registry
 
 on:
   push:
@@ -6,7 +6,7 @@ on:
       - 'v*'
 
 jobs:
-  build_and_publish:
+  build-and-publish:
     runs-on: ubuntu-latest
     name: Build and publish distribution
 
